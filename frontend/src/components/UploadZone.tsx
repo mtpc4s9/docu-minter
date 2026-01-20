@@ -1,29 +1,46 @@
 import React, { useState } from 'react';
-import { Upload, FileText, X } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { useStore } from '../store';
 
 const UploadZone: React.FC = () => {
-    const { setFile, setUploadResult, reset } = useStore();
+    const { setFile, setUploadResult } = useStore();
     const [isDragOver, setIsDragOver] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     const handleFile = async (file: File) => {
         if (file.type !== 'application/pdf') {
-            setError('Only PDF files are supported.');
+            toast.error('Invalid file type. Please upload a PDF.', {
+                icon: <AlertCircle className="w-4 h-4" />
+            });
             return;
         }
-        setError(null);
-        setFile(file);
 
-        const formData = new FormData();
-        formData.append('file', file);
+        setIsUploading(true);
+        const uploadToastId = toast.loading(`Uploading ${file.name}...`);
 
         try {
+            setFile(file);
+            const formData = new FormData();
+            formData.append('file', file);
+
             const response = await axios.post('http://localhost:8002/upload', formData);
             setUploadResult(response.data.file_id, response.data.filename, response.data.page_count);
+
+            toast.success('Document ready for processing', {
+                id: uploadToastId,
+                description: `${response.data.page_count} pages detected locally.`,
+                icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            });
         } catch (err: any) {
-            setError(err.response?.data?.detail || 'Upload failed. Is the backend running?');
+            toast.error('Upload failed', {
+                id: uploadToastId,
+                description: err.response?.data?.detail || 'Is the local engine running on port 8002?'
+            });
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -36,41 +53,83 @@ const UploadZone: React.FC = () => {
     };
 
     return (
-        <div className="w-full max-w-2xl mx-auto mt-12">
-            <div
+        <div className="w-full max-w-2xl mx-auto">
+            <motion.div
                 onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                 onDragLeave={() => setIsDragOver(false)}
                 onDrop={onDrop}
-                className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${isDragOver ? 'border-blue-500 bg-blue-50/10' : 'border-gray-600 hover:border-blue-400'
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                className={`relative group border-2 border-dashed rounded-[2rem] p-16 text-center transition-all duration-300 ${isDragOver
+                    ? 'border-brand-500 bg-brand-500/[0.05] shadow-[0_0_50px_-12px_rgba(14,165,233,0.3)]'
+                    : 'border-white/[0.08] hover:border-white/[0.15] bg-white/[0.02]'
                     }`}
             >
-                <div className="flex flex-col items-center">
-                    <Upload className="w-12 h-12 text-blue-400 mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">Drop your PDF here</h3>
-                    <p className="text-gray-400 mb-6">Or click to browse from your machine</p>
-                    <input
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-                        className="hidden"
-                        id="pdf-upload"
-                    />
-                    <label
-                        htmlFor="pdf-upload"
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg cursor-pointer transition-colors"
+                <input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                    className="hidden"
+                    id="pdf-upload"
+                    disabled={isUploading}
+                />
+
+                <label
+                    htmlFor="pdf-upload"
+                    className="cursor-pointer flex flex-col items-center"
+                >
+                    <motion.div
+                        initial={false}
+                        animate={{
+                            y: isDragOver ? -10 : 0,
+                            scale: isDragOver ? 1.1 : 1
+                        }}
+                        className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-8 transition-colors ${isDragOver ? 'bg-brand-500 text-white' : 'bg-white/[0.03] text-brand-400 group-hover:bg-brand-500/10'
+                            }`}
                     >
-                        Select PDF
-                    </label>
+                        <Upload className="w-8 h-8" />
+                    </motion.div>
+
+                    <h3 className="text-2xl font-bold mb-3 text-white">
+                        {isDragOver ? 'Release to Start' : 'Drop your document'}
+                    </h3>
+                    <p className="text-slate-400 mb-8 max-w-xs mx-auto text-sm leading-relaxed">
+                        Secure local processing. Your files never leave this machine.
+                    </p>
+
+                    <div className="px-8 py-3 rounded-full bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold transition-all shadow-lg shadow-brand-900/40">
+                        Browse Files
+                    </div>
+                </label>
+
+                <AnimatePresence>
+                    {isUploading && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm rounded-[2rem] flex flex-center flex-col items-center justify-center z-10"
+                        >
+                            <div className="w-12 h-12 border-4 border-brand-500/20 border-t-brand-500 rounded-full animate-spin mb-4" />
+                            <p className="text-sm font-bold text-white tracking-widest uppercase">Analyzing PDF</p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.div>
+
+            <div className="mt-8 flex items-center justify-center gap-6 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">
+                <div className="flex items-center gap-2">
+                    <FileText className="w-3 h-3" />
+                    <span>PDF Only</span>
                 </div>
+                <div className="w-1 h-1 rounded-full bg-slate-800" />
+                <span>Max 50MB</span>
+                <div className="w-1 h-1 rounded-full bg-slate-800" />
+                <span>Local Only</span>
             </div>
-            {error && (
-                <div className="mt-4 p-3 bg-red-900/30 border border-red-500 rounded-lg text-red-200 flex items-center gap-2">
-                    <X className="w-4 h-4 cursor-pointer" onClick={() => setError(null)} />
-                    {error}
-                </div>
-            )}
         </div>
     );
 };
 
 export default UploadZone;
+

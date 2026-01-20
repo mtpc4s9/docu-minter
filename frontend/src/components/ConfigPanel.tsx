@@ -1,6 +1,8 @@
 import React from 'react';
-import { Settings, Play, CheckCircle2 } from 'lucide-react';
+import { Play, Sliders, FileText, Zap } from 'lucide-react';
 import axios from 'axios';
+import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import { useStore } from '../store';
 
 const ConfigPanel: React.FC = () => {
@@ -9,91 +11,120 @@ const ConfigPanel: React.FC = () => {
     const handleProcess = async () => {
         if (!fileId) return;
         setProcessing(true);
+        const processToastId = toast.loading('Extracting content...');
+
         try {
             const response = await axios.post('http://localhost:8002/process', {
                 file_id: fileId,
                 options: options
             });
             setMarkdownContent(response.data.markdown_content);
-        } catch (err) {
-            console.error('Processing failed', err);
-            alert('Processing failed. Please check the backend console.');
+            toast.success('Extraction complete!', {
+                id: processToastId,
+                description: 'Content is ready for preview.'
+            });
+        } catch (err: any) {
+            toast.error('Processing failed', {
+                id: processToastId,
+                description: err.response?.data?.detail || 'Check local engine status.'
+            });
         } finally {
             setProcessing(false);
         }
     };
 
     return (
-        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl">
-            <div className="flex items-center gap-2 mb-6">
-                <Settings className="w-5 h-5 text-blue-400" />
-                <h3 className="font-semibold text-lg">Extraction Settings</h3>
+        <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-2 px-1">
+                <Sliders className="w-4 h-4 text-brand-400" />
+                <h3 className="font-bold text-sm uppercase tracking-widest text-slate-400">Configuration</h3>
             </div>
 
-            <div className="space-y-6">
+            <div className="glass-card p-6 space-y-8">
+                {/* Page Range Section */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Page Range</label>
-                    <div className="flex items-center gap-3">
-                        <input
-                            type="number"
-                            value={options.start_page}
-                            onChange={(e) => setOptions({ start_page: parseInt(e.target.value) || 1 })}
-                            className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1"
-                        />
-                        <span>to</span>
-                        <input
-                            type="number"
-                            value={options.end_page || ''}
-                            onChange={(e) => setOptions({ end_page: parseInt(e.target.value) || undefined })}
-                            className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1"
-                        />
+                    <div className="flex items-center gap-2 mb-4 text-white font-semibold text-sm">
+                        <FileText className="w-4 h-4 text-brand-400" />
+                        Page Range
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] uppercase tracking-wider text-slate-500 font-bold ml-1">Start</label>
+                            <input
+                                type="number"
+                                min="1"
+                                value={options.start_page}
+                                onChange={(e) => setOptions({ start_page: Math.max(1, parseInt(e.target.value) || 1) })}
+                                className="w-full bg-white/[0.03] border border-white/[0.05] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500/50 transition-colors"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] uppercase tracking-wider text-slate-500 font-bold ml-1">End</label>
+                            <input
+                                type="number"
+                                placeholder="Auto"
+                                value={options.end_page || ''}
+                                onChange={(e) => setOptions({ end_page: parseInt(e.target.value) || undefined })}
+                                className="w-full bg-white/[0.03] border border-white/[0.05] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500/50 transition-colors"
+                            />
+                        </div>
                     </div>
                 </div>
 
+                {/* Mode Section */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Processing Mode</label>
-                    <div className="flex gap-4">
+                    <div className="flex items-center gap-2 mb-4 text-white font-semibold text-sm">
+                        <Zap className="w-4 h-4 text-brand-400" />
+                        Extraction Mode
+                    </div>
+                    <div className="flex p-1 bg-white/[0.03] border border-white/[0.05] rounded-2xl">
                         <button
                             onClick={() => setOptions({ mode: 'clean' })}
-                            className={`flex-1 py-2 px-3 rounded border transition-all ${options.mode === 'clean' ? 'bg-blue-600 border-blue-400' : 'bg-gray-900 border-gray-600'
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all ${options.mode === 'clean'
+                                ? 'bg-brand-500 text-white shadow-lg shadow-brand-900/40'
+                                : 'text-slate-500 hover:text-slate-300'
                                 }`}
                         >
-                            Clean (Smart)
+                            Clean
                         </button>
                         <button
                             onClick={() => setOptions({ mode: 'raw' })}
-                            className={`flex-1 py-2 px-3 rounded border transition-all ${options.mode === 'raw' ? 'bg-blue-600 border-blue-400' : 'bg-gray-900 border-gray-600'
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all ${options.mode === 'raw'
+                                ? 'bg-brand-500 text-white shadow-lg shadow-brand-900/40'
+                                : 'text-slate-500 hover:text-slate-300'
                                 }`}
                         >
-                            Raw Text
+                            Raw
                         </button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                        {options.mode === 'clean' ? 'Removes headers/footers and fixes paragraph breaks.' : 'Extracts text exactly as it appears in the PDF.'}
-                    </p>
                 </div>
 
-                <button
+                <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={handleProcess}
                     disabled={isProcessing || !fileId}
-                    className={`w-full py-3 rounded-lg flex items-center justify-center gap-2 font-bold transition-all ${isProcessing ? 'bg-gray-700 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500 shadow-lg shadow-green-900/20'
+                    className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm transition-all shadow-xl ${isProcessing
+                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                        : 'bg-white text-slate-950 hover:bg-slate-200'
                         }`}
                 >
                     {isProcessing ? (
                         <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <div className="w-4 h-4 border-2 border-slate-600 border-t-slate-400 rounded-full animate-spin"></div>
                             Processing...
                         </>
                     ) : (
                         <>
-                            <Play className="w-4 h-4" />
-                            Start Extraction
+                            <Play className="w-4 h-4 fill-current" />
+                            Run Extraction
                         </>
                     )}
-                </button>
+                </motion.button>
             </div>
         </div>
     );
 };
 
 export default ConfigPanel;
+

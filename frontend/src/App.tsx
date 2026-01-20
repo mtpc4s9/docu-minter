@@ -1,5 +1,7 @@
 import React from 'react';
-import { FileStack, Github, Cpu } from 'lucide-react';
+import { FileStack, Github, Cpu, Sparkles } from 'lucide-react';
+import { Toaster } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 import UploadZone from './components/UploadZone';
 import ConfigPanel from './components/ConfigPanel';
 import PreviewSplitView from './components/PreviewSplitView';
@@ -9,87 +11,134 @@ const App: React.FC = () => {
   const { fileId, fileName } = useStore();
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-gray-100 selection:bg-blue-500/30">
+    <div className="min-h-screen bg-slate-950 text-slate-200 selection:bg-brand-500/30 overflow-x-hidden">
+      <Toaster position="top-center" expand={false} richColors theme="dark" />
+
+      {/* Dynamic Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-brand-500/10 rounded-full blur-[120px] animate-pulse-slow" />
+        <div className="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-indigo-500/10 rounded-full blur-[120px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
+      </div>
+
       {/* Header */}
-      <nav className="border-b border-gray-800 bg-[#0f172a]/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-[1800px] mx-auto px-10 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-lg">
+      <nav className="border-b border-white/[0.05] bg-slate-950/60 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-[1800px] mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-3"
+          >
+            <div className="bg-gradient-to-br from-brand-600 to-indigo-600 p-2 rounded-xl shadow-lg shadow-brand-500/20">
               <FileStack className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight">DocuMinter</h1>
-          </div>
-          <div className="flex items-center gap-6 text-sm font-medium text-gray-400">
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-gray-800 rounded-full text-xs">
-              <Cpu className="w-3 h-3 text-green-400" />
-              <span>Local Engine (v1.0)</span>
+            <h1 className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+              DocuMinter
+            </h1>
+          </motion.div>
+
+          <div className="flex items-center gap-6">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white/[0.03] border border-white/[0.05] rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <Cpu className="w-3 h-3 text-brand-400" />
+              <span>Local Engine v1.0</span>
             </div>
-            <a href="#" className="hover:text-white transition-colors">Documentation</a>
-            <button className="text-gray-300 hover:text-white transition-colors">
-              <Github className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-4 text-sm font-medium text-slate-400">
+              <a href="#" className="hover:text-white transition-colors">Docs</a>
+              <button className="text-slate-400 hover:text-white transition-colors">
+                <Github className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section (Visible only when no file is uploaded) */}
-      {!fileId && (
-        <div className="max-w-4xl mx-auto px-6 pt-20 pb-12 text-center">
-          <h2 className="text-5xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-500">
-            Convert PDFs to Clean Markdown <br />
-            <span className="text-blue-500 italic">Entirely Locally.</span>
-          </h2>
-          <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-            Extract text, headings, and paragraphs. Skip the images and layout noise.
-            Optimized for Claude, ChatGPT, and Notion.
-          </p>
-          <UploadZone />
-        </div>
-      )}
-
-      {/* Main Content (Visible during/after upload) */}
-      {fileId && (
-        <main className="max-w-[1800px] mx-auto px-10 py-10 animate-in fade-in slide-in-from-bottom-5 duration-700">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-bold mb-1">Processing Document</h2>
-              <div className="text-blue-400 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                <span className="text-sm font-mono">{fileName}</span>
-              </div>
-            </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="text-sm text-gray-400 hover:text-red-400 underline underline-offset-4"
+      <AnimatePresence mode="wait">
+        {!fileId ? (
+          <motion.div
+            key="hero"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="max-w-4xl mx-auto px-6 pt-24 pb-12 text-center"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-bold mb-8"
             >
-              Start Over
-            </button>
-          </div>
+              <Sparkles className="w-3 h-3" />
+              <span>Privacy First - 100% Offline Processing</span>
+            </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-1">
-              <ConfigPanel />
-              <div className="mt-6 p-4 bg-blue-900/10 border border-blue-500/20 rounded-xl">
-                <h4 className="text-xs font-bold text-blue-400 uppercase mb-2">Privacy Note</h4>
-                <p className="text-xs text-blue-200/60 leading-relaxed">
-                  No data leaves your device. Processing is handled by our local heuristic engine on Port 8002.
-                </p>
+            <h2 className="text-4xl md:text-6xl font-extrabold mb-8 tracking-tight leading-[1.1]">
+              Convert PDFs to <br />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-brand-400 via-indigo-400 to-brand-400 animate-gradient">
+                Clean Markdown
+              </span>
+            </h2>
+
+            <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed">
+              Experience the power of local heuristic extraction. No cloud, no subscriptions, just pure structured text for your LLMs.
+            </p>
+
+            <UploadZone />
+          </motion.div>
+        ) : (
+          <motion.main
+            key="dashboard"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="max-w-[1800px] mx-auto px-6 md:px-10 py-10"
+          >
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+              <div>
+                <nav className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                  <span className="hover:text-slate-300 cursor-pointer">Workspace</span>
+                  <span>/</span>
+                  <span className="text-slate-300">Processing</span>
+                </nav>
+                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  {fileName}
+                  <span className="px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 text-[10px] font-bold uppercase tracking-widest">
+                    PDF
+                  </span>
+                </h2>
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="text-xs text-slate-500 hover:text-rose-400 transition-colors uppercase tracking-widest font-bold border-b border-transparent hover:border-rose-400 pb-0.5"
+              >
+                Reset Project
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              <aside className="lg:col-span-1 space-y-6">
+                <ConfigPanel />
+                <div className="p-4 glass rounded-2xl border border-brand-500/10 bg-brand-500/[0.02]">
+                  <h4 className="text-[10px] font-bold text-brand-400 uppercase tracking-widest mb-2">Technical Note</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Extraction is optimized for technical documents. Images and complex vector graphics are skipped to maintain LLM context density.
+                  </p>
+                </div>
+              </aside>
+
+              <div className="lg:col-span-3">
+                <PreviewSplitView />
               </div>
             </div>
+          </motion.main>
+        )}
+      </AnimatePresence>
 
-            <div className="lg:col-span-3">
-              <PreviewSplitView />
-            </div>
-          </div>
-        </main>
-      )}
-
-      {/* Footer */}
-      <footer className="max-w-[1800px] mx-auto px-10 py-12 border-t border-gray-800 text-center text-gray-500 text-sm">
-        Built with Google Antigravity & Senior AI Architecture.
+      <footer className="max-w-[1800px] mx-auto px-10 py-16 border-t border-white/[0.05] text-center">
+        <p className="text-slate-500 text-sm">
+          Built with <span className="text-brand-500">Google Antigravity</span> & Senior AI Architecture.
+        </p>
       </footer>
     </div>
   );
 };
 
 export default App;
+
